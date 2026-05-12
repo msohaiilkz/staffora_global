@@ -1,9 +1,12 @@
 import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { ArrowRight, CheckCircle2, TrendingUp, Users, BarChart3, Clock } from 'lucide-react'
 import Button from '../ui/Button'
 import Badge from '../ui/Badge'
+
+gsap.registerPlugin(ScrollTrigger)
 
 const bullets = [
   'Fix slow hiring and high turnover',
@@ -20,13 +23,26 @@ const dashboardCards = [
 ]
 
 export default function HeroSection() {
-  const orbRef1 = useRef(null)
-  const orbRef2 = useRef(null)
+  const orbRef1  = useRef(null)
+  const orbRef2  = useRef(null)
+  const hLine1   = useRef(null)
+  const hLine2   = useRef(null)
+  const hLine3   = useRef(null)
 
   useEffect(() => {
     const ctx = gsap.context(() => {
+      // Floating orbs
       gsap.to(orbRef1.current, { y: -30, x: 20, duration: 6, repeat: -1, yoyo: true, ease: 'sine.inOut' })
       gsap.to(orbRef2.current, { y: 25, x: -15, duration: 8, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 1 })
+
+      // h1 line-reveal (3 lines, staggered)
+      gsap.from([hLine1.current, hLine2.current, hLine3.current], {
+        y: '105%',
+        stagger: 0.12,
+        duration: 0.85,
+        ease: 'power3.out',
+        delay: 0.25,
+      })
     })
     return () => ctx.revert()
   }, [])
@@ -51,13 +67,18 @@ export default function HeroSection() {
               </Badge>
             </motion.div>
 
-            <motion.h1 {...stagger(1)}
-              className="text-4xl sm:text-5xl lg:text-[52px] xl:text-[58px] font-extrabold text-[#101828] leading-[1.1] tracking-tight mb-5"
-            >
-              Build the people system your{' '}
-              <span className="text-[#10B981]">business needs</span>{' '}
-              to grow.
-            </motion.h1>
+            {/* GSAP line-reveal h1 */}
+            <h1 className="text-4xl sm:text-5xl lg:text-[52px] xl:text-[58px] font-extrabold text-[#101828] leading-[1.1] tracking-tight mb-5">
+              <span className="block overflow-hidden pb-1">
+                <span ref={hLine1} className="block">Build the people system</span>
+              </span>
+              <span className="block overflow-hidden pb-1">
+                <span ref={hLine2} className="block">your <span className="text-[#10B981]">business needs</span></span>
+              </span>
+              <span className="block overflow-hidden pb-1">
+                <span ref={hLine3} className="block">to grow.</span>
+              </span>
+            </h1>
 
             <motion.p {...stagger(2)}
               className="text-base sm:text-lg text-[#667085] leading-relaxed mb-4 max-w-lg"

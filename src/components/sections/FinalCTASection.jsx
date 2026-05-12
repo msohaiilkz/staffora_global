@@ -1,25 +1,53 @@
 import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { ArrowRight, Mail, Sparkles } from 'lucide-react'
 import Button from '../ui/Button'
 
+gsap.registerPlugin(ScrollTrigger)
+
 export default function FinalCTASection() {
-  const orb1Ref = useRef(null)
-  const orb2Ref = useRef(null)
-  const orb3Ref = useRef(null)
+  const orb1Ref  = useRef(null)
+  const orb2Ref  = useRef(null)
+  const orb3Ref  = useRef(null)
+  const hLine1   = useRef(null)
+  const hLine2   = useRef(null)
+  const sectionRef = useRef(null)
 
   useEffect(() => {
     const ctx = gsap.context(() => {
+      // Floating orbs
       gsap.to(orb1Ref.current, { y: -25, x: 15, duration: 7, repeat: -1, yoyo: true, ease: 'sine.inOut' })
       gsap.to(orb2Ref.current, { y: 20, x: -18, duration: 9, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 1.5 })
       gsap.to(orb3Ref.current, { y: -15, x: -10, duration: 6, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 3 })
+
+      // h2 line-reveal with ScrollTrigger
+      gsap.from([hLine1.current, hLine2.current], {
+        y: '105%',
+        stagger: 0.13,
+        duration: 0.85,
+        ease: 'power3.out',
+        scrollTrigger: { trigger: sectionRef.current, start: 'top 78%', once: true },
+      })
+
+      // Pin section briefly while h2 animates in
+      const mm = gsap.matchMedia()
+      mm.add('(min-width: 1024px)', () => {
+        const st = ScrollTrigger.create({
+          trigger: sectionRef.current,
+          start: 'top bottom',
+          end: 'bottom top',
+          onEnter: () => gsap.to(sectionRef.current, { backgroundSize: '105% 105%', duration: 0.6, ease: 'power2.out' }),
+        })
+        return () => st.kill()
+      })
     })
     return () => ctx.revert()
   }, [])
 
   return (
-    <section className="relative w-full overflow-hidden bg-[#101828]">
+    <section ref={sectionRef} className="relative w-full overflow-hidden bg-[#101828]">
       {/* Animated orbs */}
       <div ref={orb1Ref} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] rounded-full bg-[#10B981]/10 blur-[120px] pointer-events-none" />
       <div ref={orb2Ref} className="absolute top-0 right-0 w-[350px] h-[350px] rounded-full bg-[#065F46]/20 blur-[90px] pointer-events-none" />
@@ -48,16 +76,15 @@ export default function FinalCTASection() {
           Take the first step
         </motion.div>
 
-        <motion.h2
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-60px' }}
-          transition={{ duration: 0.65, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-          className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight tracking-tight mb-5"
-        >
-          Ready to stop replacing people and{' '}
-          <span className="text-[#10B981]">start fixing the system?</span>
-        </motion.h2>
+        {/* GSAP line-reveal h2 */}
+        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight tracking-tight mb-5">
+          <span className="block overflow-hidden pb-1">
+            <span ref={hLine1} className="block">Ready to stop replacing people and</span>
+          </span>
+          <span className="block overflow-hidden pb-1">
+            <span ref={hLine2} className="block text-[#10B981]">start fixing the system?</span>
+          </span>
+        </h2>
 
         <motion.p
           initial={{ opacity: 0, y: 16 }}

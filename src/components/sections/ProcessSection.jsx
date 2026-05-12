@@ -17,31 +17,69 @@ const steps = [
 ]
 
 export default function ProcessSection() {
-  const lineRef = useRef(null)
+  const lineRef  = useRef(null)
   const sectionRef = useRef(null)
+  const hdgRef   = useRef(null)
 
   useEffect(() => {
     const ctx = gsap.context(() => {
+
+      // ── Heading line-reveal ──────────────────────────────
+      if (hdgRef.current) {
+        gsap.from(hdgRef.current.querySelectorAll('.reveal-line'), {
+          y: '105%',
+          stagger: 0.1,
+          duration: 0.78,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: hdgRef.current, start: 'top 82%', once: true },
+        })
+      }
+
+      // ── Connector line scrub ─────────────────────────────
       gsap.fromTo(lineRef.current,
         { scaleX: 0 },
         {
           scaleX: 1,
-          ease: 'power2.inOut',
+          ease: 'none',
           scrollTrigger: {
             trigger: sectionRef.current,
             start: 'top 70%',
-            end: 'top 30%',
-            scrub: 1,
+            end: 'top 25%',
+            scrub: 1.2,
           },
         }
       )
+
+      // ── Step dots pop in sequence (back.out bounce) ──────
+      const dots = gsap.utils.toArray('[data-step-dot]')
+      gsap.from(dots, {
+        scale: 0,
+        opacity: 0,
+        stagger: 0.13,
+        duration: 0.5,
+        ease: 'back.out(1.7)',
+        scrollTrigger: { trigger: sectionRef.current, start: 'top 72%', once: true },
+      })
+
+      // ── Step cards: stagger reveal tied to scrub ─────────
+      const cards = gsap.utils.toArray('[data-step-card]')
+      cards.forEach((card, i) => {
+        gsap.from(card, {
+          y: 30,
+          opacity: 0,
+          duration: 0.55,
+          ease: 'power2.out',
+          scrollTrigger: { trigger: card, start: 'top 88%', once: true },
+          delay: i * 0.07,
+        })
+      })
     })
     return () => ctx.revert()
   }, [])
 
   return (
     <SectionWrapper id="process" bg="white">
-      <div className="max-w-2xl mx-auto text-center mb-14">
+      <div ref={hdgRef} className="max-w-2xl mx-auto text-center mb-14">
         <motion.p
           initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -51,15 +89,14 @@ export default function ProcessSection() {
         >
           How We Work
         </motion.p>
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-80px' }}
-          transition={{ duration: 0.6, delay: 0.08 }}
-          className="text-3xl sm:text-4xl lg:text-[40px] font-extrabold text-[#101828] leading-tight tracking-tight mb-5"
-        >
-          How <span className="text-[#10B981]">Staffora works</span>
-        </motion.h2>
+
+        {/* GSAP line-reveal heading */}
+        <h2 className="text-3xl sm:text-4xl lg:text-[40px] font-extrabold text-[#101828] leading-tight tracking-tight mb-5">
+          <span className="block overflow-hidden pb-1">
+            <span className="reveal-line block">How <span className="text-[#10B981]">Staffora works</span></span>
+          </span>
+        </h2>
+
         <motion.p
           initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -83,15 +120,9 @@ export default function ProcessSection() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 lg:gap-4 relative z-10">
           {steps.map((s, i) => (
-            <motion.div
-              key={s.num}
-              initial={{ opacity: 0, y: 32 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.55, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
-              className="flex flex-col items-center text-center"
-            >
+            <div key={s.num} className="flex flex-col items-center text-center">
               <motion.div
+                data-step-dot
                 whileHover={{ scale: 1.15, rotate: 5 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 15 }}
                 className={`w-11 h-11 rounded-full ${s.color} flex items-center justify-center mb-4 shadow-lg ring-4 ring-white`}
@@ -99,13 +130,14 @@ export default function ProcessSection() {
                 <span className="text-white text-sm font-bold">{s.num}</span>
               </motion.div>
               <motion.div
+                data-step-card
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
                 className={`${s.light} border ${s.border} rounded-2xl p-5 w-full shadow-[0_2px_10px_0_rgba(16,24,40,0.05)]`}
               >
                 <h3 className="text-sm font-bold text-[#101828] mb-2 leading-snug">{s.title}</h3>
                 <p className="text-xs text-[#667085] leading-relaxed">{s.copy}</p>
               </motion.div>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>
