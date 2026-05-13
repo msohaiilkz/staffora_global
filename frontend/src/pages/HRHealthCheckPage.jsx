@@ -1,9 +1,10 @@
 import SEO from '../components/ui/SEO'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { ArrowRight, ArrowLeft, CheckCircle2, Mail } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import Badge from '../components/ui/Badge'
+import { submitHealthCheck } from '../lib/api'
 
 const questions = [
   {
@@ -120,6 +121,10 @@ export default function HRHealthCheckPage() {
   const [step, setStep] = useState(0) // 0 = intro, 1–6 = questions, 7 = result
   const [answers, setAnswers] = useState({})
   const [selected, setSelected] = useState(null)
+  const [emailForm, setEmailForm] = useState({ name: '', email: '', company: '' })
+  const [emailSent, setEmailSent] = useState(false)
+  const [emailSubmitting, setEmailSubmitting] = useState(false)
+  const [emailError, setEmailError] = useState('')
 
   const totalSteps = questions.length
   const isIntro = step === 0
@@ -127,6 +132,37 @@ export default function HRHealthCheckPage() {
   const currentQ = questions[step - 1]
 
   function startQuiz() { setStep(1); setSelected(null) }
+
+  function getScore(id) {
+    const q = questions.find(q => q.id === id)
+    const opt = q?.options.find(o => o.value === answers[id])
+    return opt?.score || 0
+  }
+
+  async function handleEmailSubmit(e) {
+    e.preventDefault()
+    if (!emailForm.name.trim() || !emailForm.email.trim()) return
+    setEmailSubmitting(true)
+    setEmailError('')
+    try {
+      await submitHealthCheck({
+        name: emailForm.name,
+        email: emailForm.email,
+        company: emailForm.company,
+        overallScore: result.pct,
+        hiringScore: Math.round((getScore('hiring') / 3) * 100),
+        onboardingScore: Math.round((getScore('onboarding') / 3) * 100),
+        performanceScore: Math.round((getScore('performance') / 3) * 100),
+        retentionScore: Math.round((getScore('retention') / 3) * 100),
+        hrSetupScore: Math.round((getScore('structure') / 3) * 100),
+        recommendation: result.recommendation,
+      })
+      setEmailSent(true)
+    } catch (err) {
+      setEmailError(err.message)
+      setEmailSubmitting(false)
+    }
+  }
 
   function handleNext() {
     if (!selected) return
@@ -331,8 +367,52 @@ export default function HRHealthCheckPage() {
                 </div>
               </div>
 
+              {/* Email capture */}
+              <div className="bg-white rounded-3xl border border-[#EAECF0] p-7 shadow-[0_2px_16px_0_rgba(16,24,40,0.06)] mb-5">
+                {emailSent ? (
+                  <div className="flex items-center gap-3 text-[#065F46]">
+                    <CheckCircle2 size={20} className="text-[#10B981] shrink-0" />
+                    <p className="text-sm font-medium">Report sent! Check your inbox.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Mail size={15} className="text-[#10B981]" />
+                      <p className="text-sm font-bold text-[#101828]">Get this report by email</p>
+                    </div>
+                    <p className="text-xs text-[#667085] mb-4">We will send your full HR Health Check report with personalised recommendations.</p>
+                    <form onSubmit={handleEmailSubmit} className="space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <input
+                          type="text" placeholder="Your name *" required
+                          value={emailForm.name} onChange={e => setEmailForm(f => ({ ...f, name: e.target.value }))}
+                          className="w-full rounded-xl border border-[#D0D5DD] px-3.5 py-2.5 text-sm text-[#101828] placeholder-[#98A2B3] focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981]"
+                        />
+                        <input
+                          type="email" placeholder="Work email *" required
+                          value={emailForm.email} onChange={e => setEmailForm(f => ({ ...f, email: e.target.value }))}
+                          className="w-full rounded-xl border border-[#D0D5DD] px-3.5 py-2.5 text-sm text-[#101828] placeholder-[#98A2B3] focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981]"
+                        />
+                      </div>
+                      <input
+                        type="text" placeholder="Company name (optional)"
+                        value={emailForm.company} onChange={e => setEmailForm(f => ({ ...f, company: e.target.value }))}
+                        className="w-full rounded-xl border border-[#D0D5DD] px-3.5 py-2.5 text-sm text-[#101828] placeholder-[#98A2B3] focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981]"
+                      />
+                      {emailError && <p className="text-xs text-red-500">{emailError}</p>}
+                      <button
+                        type="submit" disabled={emailSubmitting}
+                        className="w-full flex items-center justify-center gap-2 bg-[#10B981] hover:bg-[#059669] disabled:opacity-50 text-white font-semibold text-sm rounded-xl px-5 py-3 transition-colors"
+                      >
+                        {emailSubmitting ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Sending…</> : <>Send My Report <ArrowRight size={14} /></>}
+                      </button>
+                    </form>
+                  </>
+                )}
+              </div>
+
               <button
-                onClick={() => { setStep(0); setAnswers({}); setSelected(null) }}
+                onClick={() => { setStep(0); setAnswers({}); setSelected(null); setEmailSent(false); setEmailForm({ name: '', email: '', company: '' }) }}
                 className="w-full text-center text-xs text-[#667085] hover:text-[#10B981] transition-colors py-2"
               >
                 Retake the assessment

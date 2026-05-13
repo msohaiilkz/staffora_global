@@ -1,6 +1,7 @@
 import SEO from '../components/ui/SEO'
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { submitApplication } from '../lib/api'
 import { motion } from 'framer-motion'
 import { ArrowLeft, ArrowRight, MapPin, Briefcase, Clock, CheckCircle2, DollarSign } from 'lucide-react'
 import { jobsData } from '../data/jobs'
@@ -173,15 +174,30 @@ export default function JobDetailPage() {
 
 function ApplyCard({ job }) {
   const [submitted, setSubmitted] = useState(false)
-  const [form, setForm] = useState({ name: '', email: '', cv: null, message: '' })
+  const [form, setForm] = useState({ name: '', email: '', phone: '', cv: null, message: '' })
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   async function handleSubmit(e) {
     e.preventDefault()
     if (!form.name || !form.email) return
     setSubmitting(true)
-    await new Promise(r => setTimeout(r, 1000))
-    setSubmitted(true)
+    setSubmitError('')
+    try {
+      const fd = new FormData()
+      fd.append('name', form.name)
+      fd.append('email', form.email)
+      fd.append('phone', form.phone)
+      fd.append('jobTitle', job.title)
+      fd.append('jobSlug', job.slug)
+      fd.append('coverNote', form.message)
+      if (form.cv) fd.append('cv', form.cv)
+      await submitApplication(fd)
+      setSubmitted(true)
+    } catch (err) {
+      setSubmitError(err.message)
+      setSubmitting(false)
+    }
   }
 
   if (submitted) {
@@ -209,6 +225,11 @@ function ApplyCard({ job }) {
           value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
           className="w-full rounded-xl border border-[#D0D5DD] px-3.5 py-2.5 text-sm text-[#101828] placeholder-[#98A2B3] focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981]"
         />
+        <input
+          type="tel" placeholder="Phone number (optional)"
+          value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+          className="w-full rounded-xl border border-[#D0D5DD] px-3.5 py-2.5 text-sm text-[#101828] placeholder-[#98A2B3] focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981]"
+        />
         <div>
           <label className="block text-xs text-[#667085] mb-1.5">CV / Resume</label>
           <input
@@ -222,6 +243,7 @@ function ApplyCard({ job }) {
           value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
           className="w-full rounded-xl border border-[#D0D5DD] px-3.5 py-2.5 text-sm text-[#101828] placeholder-[#98A2B3] focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981] resize-none"
         />
+        {submitError && <p className="text-xs text-red-500">{submitError}</p>}
         <button
           type="submit" disabled={submitting}
           className="w-full flex items-center justify-center gap-2 bg-[#10B981] hover:bg-[#059669] text-white font-semibold text-sm rounded-xl px-5 py-3 transition-colors duration-200 disabled:opacity-60"

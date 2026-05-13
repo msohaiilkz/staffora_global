@@ -7,6 +7,7 @@ import { useScrollAnimation } from '../hooks/useScrollAnimation'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import SectionWrapper from '../components/ui/SectionWrapper'
+import { submitContact } from '../lib/api'
 
 const inquiryTypes = [
   { value: 'hr-diagnostic', label: 'HR Diagnostic and Setup' },
@@ -60,8 +61,19 @@ export default function ContactPage() {
     const errs = validate()
     if (Object.keys(errs).length) { setErrors(errs); return }
     setSubmitting(true)
-    await new Promise(r => setTimeout(r, 1200))
-    navigate('/thank-you?type=employer')
+    try {
+      await submitContact({
+        name: form.name,
+        email: form.email,
+        company: form.company,
+        inquiryType: form.inquiry,
+        message: form.message,
+      })
+      navigate('/thank-you?type=employer')
+    } catch (err) {
+      setErrors(e => ({ ...e, submit: err.message }))
+      setSubmitting(false)
+    }
   }
 
   function handleChange(field, value) {
@@ -176,6 +188,7 @@ export default function ContactPage() {
                     <>Send Message <ArrowRight size={16} /></>
                   )}
                 </button>
+                {errors.submit && <p className="text-sm text-red-500 text-center">{errors.submit}</p>}
                 <p className="text-xs text-[#667085] text-center">We typically respond within 1 business day.</p>
               </form>
             </motion.div>
