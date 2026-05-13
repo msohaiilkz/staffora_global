@@ -35,20 +35,22 @@ export default function AdminLayout() {
   )
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex">
+    <div className="h-screen overflow-hidden bg-[#F8FAFC] flex">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/40 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — fixed height, never scrolls */}
       <aside className={`
-        fixed lg:static inset-y-0 left-0 z-30 w-60 bg-white border-r border-[#EAECF0] flex flex-col
+        fixed lg:relative inset-y-0 left-0 z-30
+        w-56 xl:w-60 h-screen bg-white border-r border-[#EAECF0]
+        flex flex-col shrink-0 overflow-hidden
         transform transition-transform duration-300
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         {/* Logo */}
-        <div className="px-5 py-5 border-b border-[#EAECF0] flex items-center gap-3">
+        <div className="px-5 py-5 border-b border-[#EAECF0] flex items-center gap-3 shrink-0">
           <div className="w-8 h-8 bg-gradient-to-br from-[#10B981] to-[#065F46] rounded-xl flex items-center justify-center shrink-0">
             <span className="text-white font-extrabold text-sm">S</span>
           </div>
@@ -59,7 +61,7 @@ export default function AdminLayout() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-hidden">
           {navItems.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to} to={to} end={end}
@@ -79,7 +81,7 @@ export default function AdminLayout() {
         </nav>
 
         {/* Logout */}
-        <div className="px-3 py-4 border-t border-[#EAECF0]">
+        <div className="px-3 py-4 border-t border-[#EAECF0] shrink-0">
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#667085] hover:text-red-500 hover:bg-red-50 transition-all w-full"
@@ -90,10 +92,10 @@ export default function AdminLayout() {
         </div>
       </aside>
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main — only this area scrolls */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         {/* Mobile topbar */}
-        <div className="lg:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-[#EAECF0]">
+        <div className="lg:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-[#EAECF0] shrink-0">
           <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover:bg-[#F8FAFC]">
             <Menu size={18} className="text-[#344054]" />
           </button>
@@ -108,7 +110,7 @@ export default function AdminLayout() {
         <motion.main
           key={location.pathname}
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
-          className="flex-1 overflow-auto p-6 lg:p-8"
+          className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8"
         >
           <Outlet />
         </motion.main>
