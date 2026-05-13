@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
-import { LayoutDashboard, Mail, Briefcase, Activity, LogOut, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Mail, Briefcase, Activity, LogOut, Menu, ExternalLink } from 'lucide-react'
 
 const navItems = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -25,7 +25,7 @@ export default function AdminLayout() {
 
   async function handleLogout() {
     await supabase.auth.signOut()
-    navigate('/admin/login')
+    navigate('/')
   }
 
   if (checking) return (
@@ -80,8 +80,17 @@ export default function AdminLayout() {
           ))}
         </nav>
 
-        {/* Logout */}
-        <div className="px-3 py-4 border-t border-[#EAECF0] shrink-0">
+        {/* Bottom actions */}
+        <div className="px-3 py-4 border-t border-[#EAECF0] shrink-0 space-y-1">
+          <a
+            href="/"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#344054] hover:bg-[#F8FAFC] transition-all w-full"
+          >
+            <ExternalLink size={16} />
+            View Website
+          </a>
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#667085] hover:text-red-500 hover:bg-red-50 transition-all w-full"
