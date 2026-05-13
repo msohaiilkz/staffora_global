@@ -1,10 +1,11 @@
 import SEO from '../components/ui/SEO'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, ArrowLeft, CheckCircle2, Mail } from 'lucide-react'
+import { ArrowRight, ArrowLeft, CheckCircle2, Mail, TrendingUp, AlertTriangle, Zap, Award } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import Badge from '../components/ui/Badge'
 import { submitHealthCheck } from '../lib/api'
+import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, Tooltip } from 'recharts'
 
 const questions = [
   {
@@ -74,6 +75,47 @@ const questions = [
     ],
   },
 ]
+
+function CircularScore({ pct, color }) {
+  const r = 54
+  const circ = 2 * Math.PI * r
+  const offset = circ - (pct / 100) * circ
+  return (
+    <div className="relative w-36 h-36">
+      <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r={r} fill="none" stroke="#F2F4F7" strokeWidth="10" />
+        <motion.circle
+          cx="60" cy="60" r={r} fill="none"
+          stroke={color} strokeWidth="10"
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          initial={{ strokeDashoffset: circ }}
+          animate={{ strokeDashoffset: offset }}
+          transition={{ duration: 1.2, ease: 'easeOut', delay: 0.3 }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <motion.span
+          className="text-3xl font-extrabold leading-none"
+          style={{ color }}
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.8, duration: 0.4 }}
+        >
+          {pct}%
+        </motion.span>
+        <span className="text-xs text-[#98A2B3] mt-1">score</span>
+      </div>
+    </div>
+  )
+}
+
+function LevelIcon({ level }) {
+  if (level === 'Strong Stage') return <Award size={12} />
+  if (level === 'Progressing Stage') return <TrendingUp size={12} />
+  if (level === 'Developing Stage') return <Zap size={12} />
+  return <AlertTriangle size={12} />
+}
 
 function getResult(score) {
   const max = questions.length * 3
@@ -302,108 +344,131 @@ export default function HRHealthCheckPage() {
 
           {isResult && result && (
             <motion.div key="result"
-              initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.45 }}
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+              className="space-y-5"
             >
-              {/* Score circle */}
-              <div className="bg-white rounded-3xl border border-[#EAECF0] p-8 md:p-10 shadow-[0_2px_16px_0_rgba(16,24,40,0.06)] mb-5 text-center">
-                <div className="inline-flex items-center justify-center w-28 h-28 rounded-full border-8 mb-5" style={{ borderColor: result.color }}>
-                  <div>
-                    <p className="text-2xl font-extrabold" style={{ color: result.color }}>{result.pct}%</p>
-                    <p className="text-xs text-[#667085]">score</p>
+              {/* Hero Score Card */}
+              <div className="rounded-3xl overflow-hidden shadow-[0_8px_40px_0_rgba(16,24,40,0.12)]" style={{ background: `linear-gradient(135deg, ${result.color}15 0%, white 60%)` }}>
+                <div className="p-8 md:p-10">
+                  <div className="flex flex-col sm:flex-row items-center gap-8">
+                    {/* SVG circular score */}
+                    <div className="shrink-0">
+                      <CircularScore pct={result.pct} color={result.color} />
+                    </div>
+                    <div className="text-center sm:text-left">
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-3" style={{ background: `${result.color}20`, color: result.color }}>
+                        <LevelIcon level={result.level} color={result.color} />
+                        {result.level}
+                      </div>
+                      <h2 className="text-2xl font-extrabold text-[#101828] mb-3 leading-tight">Your HR Health Score is <span style={{ color: result.color }}>{result.pct}%</span></h2>
+                      <p className="text-sm text-[#667085] leading-relaxed">{result.summary}</p>
+                    </div>
                   </div>
                 </div>
-                <h2 className="text-xl font-extrabold text-[#101828] mb-2">{result.level}</h2>
-                <p className="text-sm text-[#667085] leading-relaxed max-w-md mx-auto">{result.summary}</p>
               </div>
 
-              {/* Category breakdown */}
-              <div className="bg-white rounded-3xl border border-[#EAECF0] p-7 shadow-[0_2px_16px_0_rgba(16,24,40,0.06)] mb-5">
-                <p className="text-xs font-semibold uppercase tracking-widest text-[#667085] mb-4">Your Scores by Category</p>
-                <div className="space-y-3">
-                  {questions.map(q => {
-                    const ans = answers[q.id]
-                    const opt = q.options.find(o => o.value === ans)
-                    const score = opt?.score || 0
-                    const pct = Math.round((score / 3) * 100)
-                    return (
-                      <div key={q.id}>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium text-[#344054]">{q.category}</span>
-                          <span className="text-xs text-[#667085]">{score}/3</span>
+              {/* Category Breakdown + Radar */}
+              <div className="bg-white rounded-3xl border border-[#EAECF0] p-7 shadow-[0_2px_20px_0_rgba(16,24,40,0.06)]">
+                <p className="text-xs font-semibold uppercase tracking-widest text-[#667085] mb-6">Category Breakdown</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 items-center">
+                  {/* Bars */}
+                  <div className="space-y-4">
+                    {questions.map((q, i) => {
+                      const ans = answers[q.id]
+                      const opt = q.options.find(o => o.value === ans)
+                      const score = opt?.score || 0
+                      const pct = Math.round((score / 3) * 100)
+                      const barColor = pct >= 67 ? '#10B981' : pct >= 34 ? '#F4B740' : '#F97316'
+                      return (
+                        <div key={q.id}>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-xs font-semibold text-[#344054]">{q.category}</span>
+                            <span className="text-xs font-bold" style={{ color: barColor }}>{pct}%</span>
+                          </div>
+                          <div className="h-2 bg-[#F2F4F7] rounded-full overflow-hidden">
+                            <motion.div
+                              className="h-full rounded-full"
+                              style={{ background: barColor }}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${pct}%` }}
+                              transition={{ duration: 0.7, delay: 0.1 + i * 0.08, ease: 'easeOut' }}
+                            />
+                          </div>
                         </div>
-                        <div className="h-1.5 bg-[#EAECF0] rounded-full overflow-hidden">
-                          <motion.div
-                            className="h-full rounded-full"
-                            style={{ background: result.color }}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${pct}%` }}
-                            transition={{ duration: 0.6, delay: 0.1 }}
-                          />
-                        </div>
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
+                  </div>
+                  {/* Radar chart */}
+                  <div>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <RadarChart data={questions.map(q => {
+                        const ans = answers[q.id]
+                        const opt = q.options.find(o => o.value === ans)
+                        return { subject: q.category, value: Math.round(((opt?.score || 0) / 3) * 100) }
+                      })}>
+                        <PolarGrid stroke="#EAECF0" />
+                        <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fill: '#667085' }} />
+                        <Radar dataKey="value" stroke={result.color} fill={result.color} fillOpacity={0.18} strokeWidth={2.5} dot={{ fill: result.color, r: 3 }} />
+                        <Tooltip formatter={v => `${v}%`} contentStyle={{ borderRadius: '10px', border: '1px solid #EAECF0', fontSize: '11px' }} />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
 
               {/* Recommendation */}
-              <div className="bg-[#F8FAFC] rounded-3xl border border-[#EAECF0] p-7 mb-5">
-                <p className="text-xs font-semibold uppercase tracking-widest text-[#10B981] mb-2">Recommendation</p>
-                <p className="text-sm text-[#344054] leading-relaxed mb-5">{result.recommendation}</p>
+              <div className="rounded-3xl border p-7" style={{ background: `${result.color}08`, borderColor: `${result.color}30` }}>
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="p-2 rounded-xl shrink-0" style={{ background: `${result.color}20` }}>
+                    <TrendingUp size={16} style={{ color: result.color }} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: result.color }}>Our Recommendation</p>
+                    <p className="text-sm text-[#344054] leading-relaxed">{result.recommendation}</p>
+                  </div>
+                </div>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <a
-                    href={result.href}
-                    className="flex-1 flex items-center justify-center gap-2 bg-[#10B981] hover:bg-[#059669] text-white font-semibold text-sm rounded-xl px-5 py-3 transition-colors"
-                  >
+                  <a href={result.href} className="flex-1 flex items-center justify-center gap-2 text-white font-semibold text-sm rounded-xl px-5 py-3 transition-all hover:opacity-90 shadow-sm" style={{ background: result.color }}>
                     {result.cta} <ArrowRight size={14} />
                   </a>
-                  <a
-                    href="/contact"
-                    className="flex-1 flex items-center justify-center gap-2 border border-[#EAECF0] text-[#344054] hover:border-[#10B981] hover:text-[#10B981] font-medium text-sm rounded-xl px-5 py-3 transition-colors bg-white"
-                  >
+                  <a href="/contact" className="flex-1 flex items-center justify-center gap-2 border border-[#EAECF0] text-[#344054] hover:border-[#10B981] hover:text-[#10B981] font-medium text-sm rounded-xl px-5 py-3 transition-colors bg-white">
                     Talk to Staffora
                   </a>
                 </div>
               </div>
 
               {/* Email capture */}
-              <div className="bg-white rounded-3xl border border-[#EAECF0] p-7 shadow-[0_2px_16px_0_rgba(16,24,40,0.06)] mb-5">
+              <div className="bg-white rounded-3xl border border-[#EAECF0] p-7 shadow-[0_2px_16px_0_rgba(16,24,40,0.06)]">
                 {emailSent ? (
-                  <div className="flex items-center gap-3 text-[#065F46]">
-                    <CheckCircle2 size={20} className="text-[#10B981] shrink-0" />
-                    <p className="text-sm font-medium">Report sent! Check your inbox.</p>
+                  <div className="flex items-center gap-3 py-2">
+                    <div className="w-10 h-10 bg-[#ECFDF5] rounded-full flex items-center justify-center shrink-0">
+                      <CheckCircle2 size={20} className="text-[#10B981]" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-[#101828]">Report sent!</p>
+                      <p className="text-xs text-[#667085]">Check your inbox for your full HR Health Report.</p>
+                    </div>
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Mail size={15} className="text-[#10B981]" />
-                      <p className="text-sm font-bold text-[#101828]">Get this report by email</p>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-9 h-9 bg-[#ECFDF5] rounded-xl flex items-center justify-center shrink-0">
+                        <Mail size={16} className="text-[#10B981]" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-[#101828]">Get this report by email</p>
+                        <p className="text-xs text-[#667085]">Full breakdown with personalised recommendations</p>
+                      </div>
                     </div>
-                    <p className="text-xs text-[#667085] mb-4">We will send your full HR Health Check report with personalised recommendations.</p>
                     <form onSubmit={handleEmailSubmit} className="space-y-3">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <input
-                          type="text" placeholder="Your name *" required
-                          value={emailForm.name} onChange={e => setEmailForm(f => ({ ...f, name: e.target.value }))}
-                          className="w-full rounded-xl border border-[#D0D5DD] px-3.5 py-2.5 text-sm text-[#101828] placeholder-[#98A2B3] focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981]"
-                        />
-                        <input
-                          type="email" placeholder="Work email *" required
-                          value={emailForm.email} onChange={e => setEmailForm(f => ({ ...f, email: e.target.value }))}
-                          className="w-full rounded-xl border border-[#D0D5DD] px-3.5 py-2.5 text-sm text-[#101828] placeholder-[#98A2B3] focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981]"
-                        />
+                        <input type="text" placeholder="Your name *" required value={emailForm.name} onChange={e => setEmailForm(f => ({ ...f, name: e.target.value }))} className="w-full rounded-xl border border-[#D0D5DD] px-3.5 py-2.5 text-sm text-[#101828] placeholder-[#98A2B3] focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981]" />
+                        <input type="email" placeholder="Work email *" required value={emailForm.email} onChange={e => setEmailForm(f => ({ ...f, email: e.target.value }))} className="w-full rounded-xl border border-[#D0D5DD] px-3.5 py-2.5 text-sm text-[#101828] placeholder-[#98A2B3] focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981]" />
                       </div>
-                      <input
-                        type="text" placeholder="Company name (optional)"
-                        value={emailForm.company} onChange={e => setEmailForm(f => ({ ...f, company: e.target.value }))}
-                        className="w-full rounded-xl border border-[#D0D5DD] px-3.5 py-2.5 text-sm text-[#101828] placeholder-[#98A2B3] focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981]"
-                      />
+                      <input type="text" placeholder="Company name (optional)" value={emailForm.company} onChange={e => setEmailForm(f => ({ ...f, company: e.target.value }))} className="w-full rounded-xl border border-[#D0D5DD] px-3.5 py-2.5 text-sm text-[#101828] placeholder-[#98A2B3] focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981]" />
                       {emailError && <p className="text-xs text-red-500">{emailError}</p>}
-                      <button
-                        type="submit" disabled={emailSubmitting}
-                        className="w-full flex items-center justify-center gap-2 bg-[#10B981] hover:bg-[#059669] disabled:opacity-50 text-white font-semibold text-sm rounded-xl px-5 py-3 transition-colors"
-                      >
+                      <button type="submit" disabled={emailSubmitting} className="w-full flex items-center justify-center gap-2 bg-[#10B981] hover:bg-[#059669] disabled:opacity-50 text-white font-semibold text-sm rounded-xl px-5 py-3 transition-colors">
                         {emailSubmitting ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Sending…</> : <>Send My Report <ArrowRight size={14} /></>}
                       </button>
                     </form>
