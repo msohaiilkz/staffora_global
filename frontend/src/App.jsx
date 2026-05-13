@@ -1,6 +1,12 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Layout from './components/layout/Layout'
+import AdminLayout from './pages/admin/AdminLayout'
+import AdminLoginPage from './pages/admin/AdminLoginPage'
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminContacts from './pages/admin/AdminContacts'
+import AdminApplications from './pages/admin/AdminApplications'
+import AdminHRChecks from './pages/admin/AdminHRChecks'
 
 const HomePage            = lazy(() => import('./pages/HomePage'))
 const AboutPage           = lazy(() => import('./pages/AboutPage'))
@@ -49,6 +55,15 @@ export default function App() {
             <Route path="/privacy-policy"                element={<PrivacyPolicyPage />} />
             <Route path="/terms-of-use"                  element={<TermsOfUsePage />} />
             <Route path="*"                              element={<NotFoundPage />} />
+          </Route>
+
+          {/* Admin */}
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="contacts" element={<AdminContacts />} />
+            <Route path="applications" element={<AdminApplications />} />
+            <Route path="hr-checks" element={<AdminHRChecks />} />
           </Route>
         </Routes>
       </Suspense>
